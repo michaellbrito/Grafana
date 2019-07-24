@@ -1,0 +1,2011 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": 10,
+  "iteration": 1563979901745,
+  "links": [],
+  "panels": [
+    {
+      "circleMaxSize": "10",
+      "circleMinSize": "1",
+      "colors": [
+        "#37872D",
+        "#F2CC0C",
+        "#C4162A"
+      ],
+      "datasource": "SPJK-VM-ASP32B",
+      "decimals": 2,
+      "esLocationName": "",
+      "esMetric": "Metric",
+      "gridPos": {
+        "h": 19,
+        "w": 10,
+        "x": 0,
+        "y": 0
+      },
+      "hideEmpty": false,
+      "hideTimeOverride": true,
+      "hideZero": false,
+      "id": 24,
+      "initialZoom": "4",
+      "interval": "",
+      "jsonUrl": "https://raw.githubusercontent.com/michaellbrito/Grafana/master/Capitais_Brasil",
+      "jsonpCallback": "",
+      "jsonpUrl": "https://raw.githubusercontent.com/paulopaim/grafana/master/states.json",
+      "links": [],
+      "locationData": "json endpoint",
+      "mapCenter": "custom",
+      "mapCenterLatitude": "-12",
+      "mapCenterLongitude": "-50",
+      "maxDataPoints": 1,
+      "mouseWheelZoom": false,
+      "options": {},
+      "repeat": "Disposition",
+      "repeatDirection": "v",
+      "scopedVars": {
+        "Disposition": {
+          "selected": true,
+          "text": "Voz Positiva",
+          "value": "Voz Positiva"
+        }
+      },
+      "showLegend": true,
+      "stickyLabels": false,
+      "tableLabel": "",
+      "tableQueryOptions": {
+        "geohashField": "geohash",
+        "labelField": "",
+        "latitudeField": "latitude",
+        "longitudeField": "longitude",
+        "metricField": "metric",
+        "queryType": "coordinates"
+      },
+      "targets": [
+        {
+          "alias": "",
+          "format": "time_series",
+          "rawSql": "SET NOCOUNT ON\r\nSET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED\r\n      \r\nDECLARE @GMT\t\t\t\t\t\t\t\tINT = DATEDIFF(HOUR, GETDATE(), GETUTCDATE())\r\nDECLARE @DATAREPORT\t\t\t\t\t\t\tDATETIME = CONVERT(VARCHAR,GETDATE(),112)\r\nDECLARE @DATINI\t\t\t\t\t\t\t\tDATETIME = @DATAREPORT + '03:00:00'\r\nDECLARE @APPID\t\t\t\t\t\t\t\tINT = 0\r\n\r\nIF OBJECT_ID(N'tempdb..#FILTRO', N'U') IS NOT NULL   \r\nDROP TABLE #FILTRO\r\nIF OBJECT_ID(N'tempdb..#DISCADAS_TOTAL', N'U') IS NOT NULL   \r\nDROP TABLE #DISCADAS_TOTAL\r\n-----DISCADAS TOTAL\r\nSELECT \r\nCount(A.SeqNum) as QTD_DISCADAS, Left(A.DialedNum,2) AS DDD_DISCADAS\r\n INTO #DISCADAS_TOTAL\r\nFROM [detail_epro].[dbo].[CallDetail] A WITH (NOLOCK)\r\nLEFT JOIN config_epro..Service\t\tB\r\n\tON A.Service_Id = b.Service_Id\r\nLEFT JOIN config_epro..Application\tC\r\n\tON B.Application_Id = C.Application_Id \r\nwhere A.CallStartDt >= @DATINI     \r\nGroup by Left(A.DialedNum,2)       \r\n\r\n\r\n-----DISCADAS DISPOSIÇÃO FILTRO\r\nSELECT \r\nCount(A.SeqNum) as DISCADAS_FILTRO, Left(A.DialedNum,2) AS DDD_FILTRO\r\n INTO #FILTRO\r\nFROM [detail_epro].[dbo].[CallDetail] A WITH (NOLOCK)\r\nLEFT JOIN detail_epro..AODCallDetail\t\t\t\t\t\t\t\t\tD \r\n\tON A.CallStartDt = D.CallStartDt AND A.SeqNum = D.SeqNum AND A.CallId = D.CallId And A.IPNIQNodeId = D.IPNIQNodeId\r\nLEFT JOIN config_epro..Service\t\tB\r\n\tON A.Service_Id = b.Service_Id\r\nLEFT JOIN config_epro..Application\tC\r\n\tON B.Application_Id = C.Application_Id\r\n\t\tLEFT JOIN config_epro..Disposition\t\t\t\t\t\t\t\t\t\tE --\tSelect * FROM config_epro..Application\t\r\n\tON D.SwitchDispId = E.Disp_Id \r\nwhere A.CallStartDt >= @DATINI   \r\nAND E.Disposition_Desc = '$Disposition'\r\nGroup by Left(A.DialedNum,2)  \r\n----\r\n----RESULTADO\r\n----\r\nSELECT  $__timeEpoch(@DATINI),\r\n( SUM( CAST(A.DISCADAS_FILTRO as NUMERIC(18,2)))\r\n/\r\nSUM( CAST(D.QTD_DISCADAS as NUMERIC(18,2)) )\r\n*100)\r\n\r\n,Case\r\nwhen D.DDD_DISCADAS between '11' and '19'\tthen 'SP'\r\nwhen D.DDD_DISCADAS between '21' and '24'\tthen 'RJ'\r\nwhen D.DDD_DISCADAS between '27' and '28'\tthen 'ES'\r\nwhen D.DDD_DISCADAS between '31' and '38'\tthen 'MG'\r\nwhen D.DDD_DISCADAS between '41' and '46'\tthen 'PR'\r\nwhen D.DDD_DISCADAS between '47' and '49'\tthen 'SC'\r\nwhen D.DDD_DISCADAS between '51' and '55'\tthen 'RS'\r\nwhen D.DDD_DISCADAS between '61' and '64'\tthen 'GO'\r\nwhen D.DDD_DISCADAS between '47' and '49'\tthen 'SC'\r\nwhen D.DDD_DISCADAS between '65' and '66'\tthen 'MT'\r\nwhen D.DDD_DISCADAS in (67)\t\t\t\t\tthen 'MS'\r\nwhen D.DDD_DISCADAS in (68)\t\t\t\t\tthen 'AC'\r\nwhen D.DDD_DISCADAS in (69)\t\t\t\t\tthen 'RO'\r\nwhen D.DDD_DISCADAS between '71' and '77'\tthen 'BA'\r\nwhen D.DDD_DISCADAS in (79)\t\t\t\t\tthen 'SE'\r\nwhen D.DDD_DISCADAS in (81,87)\t\t\t\tthen 'PE'\r\nwhen D.DDD_DISCADAS in (82)\t\t\t\t\tthen 'AL'\r\nwhen D.DDD_DISCADAS in (83)\t\t\t\t\tthen 'PB'\r\nwhen D.DDD_DISCADAS in (84)\t\t\t\t\tthen 'RN'\r\nwhen D.DDD_DISCADAS in (85,88)\t\t\t\tthen 'CE'\r\nwhen D.DDD_DISCADAS in (86,89)\t\t\t\tthen 'PI'\r\nwhen D.DDD_DISCADAS in (85,88)\t\t\t\tthen 'CE'\r\nwhen D.DDD_DISCADAS in (85,88)\t\t\t\tthen 'CE'\r\nwhen D.DDD_DISCADAS in (91,93,94)\t\t\tthen 'PA'\r\nwhen D.DDD_DISCADAS in (92,97)\t\t\t\tthen 'AM'\r\nwhen D.DDD_DISCADAS in (95)\t\t\t\t\tthen 'RR'\r\nwhen D.DDD_DISCADAS in (96)\t\t\t\t\tthen 'AP'\r\nwhen D.DDD_DISCADAS in (98,99)\t\t\t\tthen 'MA'\r\nELSE 'INVALIDO'\r\nEND 'metric'\r\nFROM #DISCADAS_TOTAL\tas D\r\nLEFT JOIN #FILTRO AS A on D.DDD_DISCADAS = A.DDD_FILTRO\r\nGROUP BY \r\n(Case\r\nwhen D.DDD_DISCADAS between '11' and '19'\tthen 'SP'\r\nwhen D.DDD_DISCADAS between '21' and '24'\tthen 'RJ'\r\nwhen D.DDD_DISCADAS between '27' and '28'\tthen 'ES'\r\nwhen D.DDD_DISCADAS between '31' and '38'\tthen 'MG'\r\nwhen D.DDD_DISCADAS between '41' and '46'\tthen 'PR'\r\nwhen D.DDD_DISCADAS between '47' and '49'\tthen 'SC'\r\nwhen D.DDD_DISCADAS between '51' and '55'\tthen 'RS'\r\nwhen D.DDD_DISCADAS between '61' and '64'\tthen 'GO'\r\nwhen D.DDD_DISCADAS between '47' and '49'\tthen 'SC'\r\nwhen D.DDD_DISCADAS between '65' and '66'\tthen 'MT'\r\nwhen D.DDD_DISCADAS in (67)\t\t\t\t\tthen 'MS'\r\nwhen D.DDD_DISCADAS in (68)\t\t\t\t\tthen 'AC'\r\nwhen D.DDD_DISCADAS in (69)\t\t\t\t\tthen 'RO'\r\nwhen D.DDD_DISCADAS between '71' and '77'\tthen 'BA'\r\nwhen D.DDD_DISCADAS in (79)\t\t\t\t\tthen 'SE'\r\nwhen D.DDD_DISCADAS in (81,87)\t\t\t\tthen 'PE'\r\nwhen D.DDD_DISCADAS in (82)\t\t\t\t\tthen 'AL'\r\nwhen D.DDD_DISCADAS in (83)\t\t\t\t\tthen 'PB'\r\nwhen D.DDD_DISCADAS in (84)\t\t\t\t\tthen 'RN'\r\nwhen D.DDD_DISCADAS in (85,88)\t\t\t\tthen 'CE'\r\nwhen D.DDD_DISCADAS in (86,89)\t\t\t\tthen 'PI'\r\nwhen D.DDD_DISCADAS in (85,88)\t\t\t\tthen 'CE'\r\nwhen D.DDD_DISCADAS in (85,88)\t\t\t\tthen 'CE'\r\nwhen D.DDD_DISCADAS in (91,93,94)\t\t\tthen 'PA'\r\nwhen D.DDD_DISCADAS in (92,97)\t\t\t\tthen 'AM'\r\nwhen D.DDD_DISCADAS in (95)\t\t\t\t\tthen 'RR'\r\nwhen D.DDD_DISCADAS in (96)\t\t\t\t\tthen 'AP'\r\nwhen D.DDD_DISCADAS in (98,99)\t\t\t\tthen 'MA'\r\nELSE 'INVALIDO'\r\nEND)    \r\n",
+          "refId": "A"
+        }
+      ],
+      "thresholds": "3, 15 ",
+      "timeFrom": "1m",
+      "timeShift": null,
+      "title": "Brazil",
+      "transparent": true,
+      "type": "grafana-worldmap-panel",
+      "unitPlural": "",
+      "unitSingle": "",
+      "unitSingular": "",
+      "valueName": "total"
+    },
+    {
+      "aliasColors": {
+        "Abort-Customer Hung Up On Hold": "super-light-orange",
+        "Connect After Hold": "dark-green",
+        "In-effective other": "semi-dark-purple",
+        "Network Announcement": "dark-orange",
+        "No Answer": "light-blue",
+        "No Ring Back": "light-yellow",
+        "Reorder": "dark-purple",
+        "SIT Tone": "rgb(223, 9, 242)",
+        "Secretária Eletrônica": "green",
+        "Sem Detecção de Voz": "dark-blue",
+        "Vacant Circuit": "light-yellow"
+      },
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "SPJK-VM-ASP32B",
+      "fill": 1,
+      "gridPos": {
+        "h": 6,
+        "w": 14,
+        "x": 10,
+        "y": 0
+      },
+      "id": 22,
+      "legend": {
+        "alignAsTable": false,
+        "avg": false,
+        "current": false,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "maxPerRow": 24,
+      "nullPointMode": "null as zero",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "repeat": null,
+      "repeatDirection": "h",
+      "seriesOverrides": [
+        {
+          "alias": "$Disposition",
+          "color": "rgb(213, 210, 210)",
+          "dashes": true,
+          "lines": true,
+          "linewidth": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "",
+          "format": "time_series",
+          "rawSql": "SET NOCOUNT ON\r\nSET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED\r\n\r\nDECLARE @GMT                                                                                            INT = DATEDIFF(HOUR, GETDATE(), GETUTCDATE())\r\nDECLARE @DATAREPORT\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tDATETIME = CONVERT(VARCHAR,GETDATE(),112)\r\nDECLARE @DATINI\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tDATETIME = @DATAREPORT + '03:00:00'\r\n\r\n IF OBJECT_ID(N'tempdb..#DISP', N'U') IS NOT NULL   \r\nDROP TABLE #DISP\r\nIF OBJECT_ID(N'tempdb..#TOTAIS', N'U') IS NOT NULL   \r\nDROP TABLE #TOTAIS\r\n\r\nSelect  E.Disposition_Desc as metric, Count(A.SeqNum) as value, Convert(datetime,(Cast(LEFT( A.CallStartDt , 14) as varchar)+'00'),120) as time \r\n\tINTO #DISP\r\n  FROM [detail_epro].[dbo].[CallDetail]\t\tas A with (nolock)\r\n\tLEFT JOIN detail_epro..AODCallDetail\tas D with (nolock) \r\n\tON A.CallStartDt = D.CallStartDt AND A.SeqNum = D.SeqNum AND A.CallId = D.CallId And A.IPNIQNodeId = D.IPNIQNodeId\r\n\tLEFT JOIN config_epro..Disposition\t\tas E with (nolock)\r\n\tON D.SwitchDispId = E.Disp_Id\r\n\twhere \r\n\t-- Indices\r\n\tA.CallStartDt >= @DATINI\r\n\tAND A.SeqNum is not null\r\n\tAND A.CallId is not null\r\n\tAND A.IPNIQNodeId  is not null\r\n\t--Condições\r\n\tAND E.Disp_Id is not null\r\n\tGroup by E.Disposition_Desc, LEFT( A.CallStartDt , 14)\r\n\t\r\nSelect    Count(A.SeqNum) as value, Convert(datetime,(Cast(LEFT( A.CallStartDt , 14) as varchar)+'00'),120) as time \r\n\tINTO #TOTAIS\r\n  FROM [detail_epro].[dbo].[CallDetail] as A with (nolock)\r\n\twhere --Indices\r\n\tA.CallStartDt >= @DATINI\r\n\tAND A.SeqNum is not null\r\n\tAND A.CallId is not null\r\n\tAND A.IPNIQNodeId  is not null\r\n\t\r\n\t--Condições\r\n\r\n\tGroup by LEFT( A.CallStartDt , 14)\r\n\t\r\nSELECT D.metric, D.time ,CAST(((Convert(FLOAT,D.value) / (Convert(FLOAT,T.value)))*100) as NUMERIC(18,2)) As '%' \r\nfrom #DISP AS D with (nolock)\r\nLEFT JOIN #TOTAIS AS T  with (nolock) on D.time = T.time \r\nGROUP BY D.metric, D.time, T.value, D.value\r\norder by 2, 3 DESC\r\nIF OBJECT_ID(N'tempdb..#DISP', N'U') IS NOT NULL   \r\nDROP TABLE #DISP\r\nIF OBJECT_ID(N'tempdb..#TOTAIS', N'U') IS NOT NULL   \r\nDROP TABLE #TOTAIS",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Disposições Hora",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "decimals": null,
+          "format": "short",
+          "label": "",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "alert": {
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                2060
+              ],
+              "type": "lt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "15m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          },
+          {
+            "evaluator": {
+              "params": [
+                20000
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "or"
+            },
+            "query": {
+              "params": [
+                "A",
+                "15m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "15m",
+        "frequency": "15",
+        "handler": 1,
+        "name": "Pico",
+        "noDataState": "no_data",
+        "notifications": []
+      },
+      "aliasColors": {
+        "Total de Chamadas": "dark-green",
+        "value": "green"
+      },
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "SPJK-VM-ASP32B",
+      "decimals": null,
+      "fill": 3,
+      "gridPos": {
+        "h": 6,
+        "w": 14,
+        "x": 10,
+        "y": 6
+      },
+      "id": 6,
+      "interval": "",
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": false,
+        "hideEmpty": true,
+        "hideZero": true,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sideWidth": 250,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null as zero",
+      "options": {},
+      "percentage": false,
+      "pointradius": 0.5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": ""
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "",
+          "format": "time_series",
+          "rawSql": "SET NOCOUNT ON\nSET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED\n\nDECLARE @GMT\t\tINT = DATEDIFF(HOUR, GETDATE(), GETUTCDATE())\nDECLARE @DATAREPORT DATETIME = CONVERT(VARCHAR,GETDATE(),112)\nDECLARE @DATINI\t    DATETIME = @DATAREPORT + '03:00:00'\nDECLARE @DATFIM     DATETIME = DATEADD(DAY,-30,@DATAREPORT) + '03:00:00'\n \n IF OBJECT_ID(N'tempdb..#DATES', N'U') IS NOT NULL   \nDROP TABLE #DATES\nIF OBJECT_ID(N'tempdb..#DATES', N'U') IS NOT NULL   \nDROP TABLE #SOMA\n\n  Select distinct(BeginTimePeriodDt) \n  INTO #DATAS \n  from [summary_epro].[dbo].[TrunkSummary] \n  where BeginTimePeriodDt > @DATFIM order by 1\n    \n\tSELECT S.BeginTimePeriodDt,\n  CAST (SUM(S.TotalDialedCalls) as INT) AS 'value'\n  INTO #SOMA\nFROM [summary_epro].[dbo].[ServiceActivitySummary] AS S\n  where S.BeginTimePeriodDt > @DATFIM\n  AND S.BeginTimePeriodDt IS NOT NULL \n  AND Service_Id IS NOT NULL \n  AND Site_Id IS NOT NULL \n  AND TenantId IS NOT NULL\n    Group by S.BeginTimePeriodDt\n\torder by 1\n\n\tSELECT $__timeEpoch(D.BeginTimePeriodDt), S.value ,'Quantidade de Chamadas' as 'metric' FROM #DATAS  AS D\n\tLEFT JOIN #SOMA AS S on S.BeginTimePeriodDt = D.BeginTimePeriodDt\nDROP TABLE #DATAS\nDROP TABLE #SOMA",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "lt",
+          "value": 2060,
+          "yaxis": "left"
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [
+        {
+          "colorMode": "gray",
+          "fill": true,
+          "fillColor": "rgba(234, 112, 112, 0.12)",
+          "from": "11:00",
+          "line": false,
+          "lineColor": "rgba(237, 46, 24, 0.60)",
+          "op": "time",
+          "to": "00:00"
+        }
+      ],
+      "timeShift": null,
+      "title": "Total de Chamadas",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "cumulative"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "short",
+          "label": "",
+          "logBase": 1,
+          "max": "20000",
+          "min": "0",
+          "show": true
+        },
+        {
+          "decimals": null,
+          "format": "short",
+          "label": "Quantidade De Chamadas",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": true,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "breakPoint": "50%",
+      "cacheTimeout": null,
+      "combine": {
+        "label": "Others",
+        "threshold": "0.04"
+      },
+      "datasource": "SPJK-VM-ASP32B",
+      "fontSize": "50%",
+      "format": "short",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 10,
+        "y": 12
+      },
+      "id": 20,
+      "interval": null,
+      "legend": {
+        "percentage": true,
+        "percentageDecimals": null,
+        "show": true,
+        "values": false
+      },
+      "legendType": "On graph",
+      "links": [],
+      "maxDataPoints": 3,
+      "nullPointMode": "connected",
+      "options": {},
+      "pieType": "pie",
+      "strokeWidth": "",
+      "targets": [
+        {
+          "alias": "",
+          "format": "time_series",
+          "rawSql": "DECLARE @GMT                                                                                            INT = DATEDIFF(HOUR, GETDATE(), GETUTCDATE())\r\nDECLARE @DATAREPORT\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tDATETIME = CONVERT(VARCHAR,GETDATE(),112)\r\nDECLARE @DATINI\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tDATETIME = @DATAREPORT + '03:00:00'\r\nDECLARE @APPID\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tINT = 0\r\nDECLARE @DISP\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tINT = 61\r\nSelect  E.Disposition_Desc as metric, Count(A.SeqNum) as value , 00 as time\r\n  FROM [detail_epro].[dbo].[CallDetail] as A\r\n\tLEFT JOIN config_epro..Service                                          B\r\nON A.Service_Id = b.Service_Id\r\n\tLEFT JOIN config_epro..Application\t\t\t\t\t\t\t\t\t\tC --\tSelect * FROM config_epro..Application\t\r\n\tON B.Application_Id = C.Application_Id \r\n\tLEFT JOIN detail_epro..AODCallDetail\t\t\t\t\t\t\t\t\tD \r\n\tON A.CallStartDt = D.CallStartDt AND A.SeqNum = D.SeqNum AND A.CallId = D.CallId And A.IPNIQNodeId = D.IPNIQNodeId\r\n\tLEFT JOIN config_epro..Disposition\t\t\t\t\t\t\t\t\t\tE --\tSelect * FROM config_epro..Disposition\r\n\tON D.SwitchDispId = E.Disp_Id\r\n\twhere DialedNum is not null\r\n\tAND A.CallStartDt >= @DATINI\r\n\tAND C.Application_Id >= @APPID\r\n\tAND E.Disp_Id is not null\r\n\tGroup by E.Disposition_Desc\r\n\tOrder by 2 DESC",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Disposições",
+      "transparent": true,
+      "type": "grafana-piechart-panel",
+      "valueName": "current"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "SPJK-VM-ASP32B",
+      "fill": 1,
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "id": 8,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeEpoch(BeginTimePeriod), LicenseQnty, 'Licença' as Metric\r\n  FROM [summary_epro].[dbo].[LicenseUsageSummary]\r\n  where Entitytypeid =1\r\n  And BeginTimePeriod >= CONVERT (date, GETDATE()-15)\r\n    Order by 1",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 400,
+          "yaxis": "left"
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [
+        {
+          "colorMode": "gray",
+          "fill": true,
+          "fillColor": "rgba(234, 112, 112, 0.12)",
+          "from": "11:00",
+          "line": false,
+          "lineColor": "rgba(237, 46, 24, 0.60)",
+          "op": "time",
+          "to": "00:00"
+        }
+      ],
+      "timeShift": null,
+      "title": "Licenças",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "content": "\n\n",
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 16,
+        "y": 16
+      },
+      "id": 26,
+      "links": [],
+      "mode": "markdown",
+      "options": {},
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Zabbix",
+      "fill": 1,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 19
+      },
+      "id": 2,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [
+        {
+          "dashboard": "Acurácia",
+          "keepTime": true,
+          "targetBlank": true,
+          "title": "Acurácia",
+          "type": "dashboard",
+          "url": "/d/m7iK1kSWZ/acuracia"
+        }
+      ],
+      "maxDataPoints": "",
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "application": {
+            "filter": "ACURACIA"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "ACURACIA"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "A",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "textFilter": "",
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          },
+          "useCaptureGroups": false
+        },
+        {
+          "application": {
+            "filter": "ACURACIA"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "ACURACIA_CAIXA"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "B",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "ACURACIA"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "ACURACIA_CRUZEIRO"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "C",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "ACURACIA"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "ACURACIA_DISAL"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "D",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "ACURACIA"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "ACURACIA_HUGHES"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "E",
+          "resultFormat": "time_series",
+          "slaProperty": {
+            "name": "SLA",
+            "property": "sla"
+          },
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "ACURACIA"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "ACURACIA_RH"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "F",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "ACURACIA"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "ACURACIA_SERASA_COB"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "G",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "ACURACIA"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "ACURACIA_SERASA_WC"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "H",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [
+        {
+          "colorMode": "gray",
+          "fill": true,
+          "fillColor": "rgba(234, 112, 112, 0.12)",
+          "from": "11:00",
+          "line": false,
+          "lineColor": "rgba(237, 46, 24, 0.60)",
+          "op": "time",
+          "to": "00:00"
+        }
+      ],
+      "timeShift": null,
+      "title": "Acurácia",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "short",
+          "label": "",
+          "logBase": 1,
+          "max": "100",
+          "min": "94",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "columns": [],
+      "datasource": "SPJK-VM-ASP32B",
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 11,
+        "w": 5,
+        "x": 12,
+        "y": 19
+      },
+      "id": 18,
+      "links": [],
+      "options": {},
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "pattern": "DialedNum",
+          "thresholds": [
+            ""
+          ],
+          "type": "number",
+          "unit": "none"
+        },
+        {
+          "alias": "",
+          "colorMode": null,
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "pattern": "Repetições",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "alias": "",
+          "format": "table",
+          "rawSql": "DECLARE @GMT            INT = DATEDIFF(HOUR, GETDATE(), GETUTCDATE())\r\nDECLARE @DATAREPORT\t\t\tDATETIME = CONVERT(VARCHAR,GETDATE(),112)\r\nDECLARE @DATINI\tDATETIME = @DATAREPORT + '03:00:00'\r\nDECLARE @APPID INT = 0\r\nSelect top 10 DialedNum,Count(A.SeqNum) as Repetições\r\n  FROM [detail_epro].[dbo].[CallDetail] as A\r\n\tLEFT JOIN config_epro..Service                                          B\r\nON A.Service_Id = b.Service_Id\r\n\tLEFT JOIN config_epro..Application\t\t\t\t\t\t\t\t\t\tC --\tSelect * FROM config_epro..Application\t\r\n\tON B.Application_Id = C.Application_Id \r\n\tLEFT JOIN detail_epro..AODCallDetail\t\t\t\t\t\t\t\t\tD \r\n\tON A.CallStartDt = D.CallStartDt AND A.SeqNum = D.SeqNum AND A.CallId = D.CallId And A.IPNIQNodeId = D.IPNIQNodeId\r\n\twhere DialedNum is not null\r\n\tAND A.CallStartDt >= @DATINI\r\n\tAND C.Application_Id >= @APPID\r\n\tAND D.SwitchDispId in (1,2)\r\n\tGroup by DialedNum\r\n\tOrder by 2 Desc",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Repetições Abandono",
+      "transform": "table",
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "columns": [],
+      "datasource": "SPJK-VM-ASP32B",
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 11,
+        "w": 5,
+        "x": 18,
+        "y": 19
+      },
+      "id": 16,
+      "links": [],
+      "options": {},
+      "pageSize": null,
+      "scroll": true,
+      "showHeader": true,
+      "sort": {
+        "col": null,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "",
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "link": false,
+          "pattern": "DialedNum",
+          "thresholds": [
+            ""
+          ],
+          "type": "number",
+          "unit": "none"
+        },
+        {
+          "alias": "",
+          "colorMode": null,
+          "colors": [
+            "rgba(50, 172, 45, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "pattern": "Repetições",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "alias": "",
+          "format": "table",
+          "rawSql": "DECLARE @GMT                                                                                            INT = DATEDIFF(HOUR, GETDATE(), GETUTCDATE())\r\nDECLARE @DATAREPORT\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tDATETIME = CONVERT(VARCHAR,GETDATE(),112)\r\nDECLARE @DATINI\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tDATETIME = @DATAREPORT + '03:00:00'\r\nDECLARE @APPID                                                                                         INT = 0\r\nSelect top 10 DialedNum,Count(A.SeqNum) as Repetiçõe\r\n  FROM [detail_epro].[dbo].[CallDetail] as A\r\n\tLEFT JOIN config_epro..Service                                          B\r\nON A.Service_Id = b.Service_Id\r\n\tLEFT JOIN config_epro..Application\t\t\t\t\t\t\t\t\t\tC --\tSelect * FROM config_epro..Application\t\r\n\tON B.Application_Id = C.Application_Id \r\n\twhere DialedNum is not null\r\n\tAND CallStartDt >= @DATINI\r\n\tAND C.Application_Id > @APPID\r\n\tGroup by DialedNum\r\n\tOrder by 2 Desc\r\n",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Repetições",
+      "transform": "table",
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Zabbix",
+      "fill": 1,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 4,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [
+        {
+          "dashboard": "HitRATE",
+          "keepTime": true,
+          "targetBlank": true,
+          "title": "HitRATE",
+          "type": "dashboard",
+          "url": "/d/m7iK1kSWH/hitrate"
+        }
+      ],
+      "maxDataPoints": "",
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "application": {
+            "filter": "HIT_RATE"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "HIT_RATE"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "A",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "textFilter": "",
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          },
+          "useCaptureGroups": false
+        },
+        {
+          "application": {
+            "filter": "HIT_RATE"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "HIT_RATE_CAIXA"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "B",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "HIT_RATE"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "HIT_RATE_CRUZEIRO"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "C",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "HIT_RATE"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "HIT_RATE_DISAL"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "D",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "HIT_RATE"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "HIT_RATE_HUGHES"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "E",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "HIT_RATE"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "HIT_RATE_RH"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "F",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "HIT_RATE"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "HIT_RATE_SERASA_COB"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "G",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "HIT_RATE"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "HIT_RATE_SERASA_WC"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "H",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [
+        {
+          "colorMode": "gray",
+          "fill": true,
+          "fillColor": "rgba(234, 112, 112, 0.12)",
+          "from": "11:00",
+          "line": false,
+          "lineColor": "rgba(237, 46, 24, 0.60)",
+          "op": "time",
+          "to": "00:00"
+        }
+      ],
+      "timeShift": null,
+      "title": "Hit Rate",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "short",
+          "label": "",
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "ackEventColor": "rgb(56, 219, 156)",
+      "ageField": false,
+      "customLastChangeFormat": false,
+      "datasources": [
+        "Zabbix"
+      ],
+      "descriptionAtNewLine": false,
+      "descriptionField": true,
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
+      "highlightBackground": false,
+      "highlightNewEvents": false,
+      "highlightNewerThan": "1h",
+      "hostField": true,
+      "hostGroups": false,
+      "hostProxy": false,
+      "hostTechNameField": false,
+      "hostsInMaintenance": true,
+      "id": 12,
+      "lastChangeFormat": "",
+      "layout": "table",
+      "limit": 100,
+      "links": [],
+      "markAckEvents": false,
+      "okEventColor": "rgb(56, 189, 113)",
+      "options": {},
+      "pageSize": 10,
+      "problemTimeline": true,
+      "resizedColumns": [
+        {
+          "id": "host",
+          "value": 155
+        },
+        {
+          "id": "description",
+          "value": 384
+        }
+      ],
+      "schemaVersion": 6,
+      "severityField": true,
+      "showEvents": {
+        "text": "Problems",
+        "value": 1
+      },
+      "showTags": true,
+      "showTriggers": "all triggers",
+      "sortTriggersBy": {
+        "text": "last change",
+        "value": "lastchange"
+      },
+      "statusField": true,
+      "statusIcon": false,
+      "targets": {
+        "0": {
+          "refId": "A"
+        },
+        "Zabbix": {
+          "application": {
+            "filter": ""
+          },
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": ""
+          },
+          "proxy": {
+            "filter": ""
+          },
+          "tags": {
+            "filter": ""
+          },
+          "trigger": {
+            "filter": ""
+          }
+        }
+      },
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Alarme Zabbix",
+      "transparent": true,
+      "triggerSeverity": [
+        {
+          "color": "rgb(108, 108, 108)",
+          "priority": 0,
+          "severity": "Not classified",
+          "show": true
+        },
+        {
+          "color": "rgb(120, 158, 183)",
+          "priority": 1,
+          "severity": "Information",
+          "show": true
+        },
+        {
+          "color": "rgb(175, 180, 36)",
+          "priority": 2,
+          "severity": "Warning",
+          "show": true
+        },
+        {
+          "color": "rgb(255, 137, 30)",
+          "priority": 3,
+          "severity": "Average",
+          "show": true
+        },
+        {
+          "color": "rgb(255, 101, 72)",
+          "priority": 4,
+          "severity": "High",
+          "show": true
+        },
+        {
+          "color": "rgb(215, 0, 0)",
+          "priority": 5,
+          "severity": "Disaster",
+          "show": true
+        }
+      ],
+      "type": "alexanderzobnin-zabbix-triggers-panel"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Zabbix",
+      "fill": 1,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 31
+      },
+      "id": 10,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [
+        {
+          "dashboard": "Hung Up",
+          "keepTime": true,
+          "targetBlank": true,
+          "title": "Hung Up",
+          "type": "dashboard",
+          "url": "/d/m7iK1kSHH/hung-up"
+        }
+      ],
+      "maxDataPoints": "",
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "application": {
+            "filter": "Hung_Up"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "Hung_Up"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "A",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "textFilter": "",
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          },
+          "useCaptureGroups": false
+        },
+        {
+          "application": {
+            "filter": "Hung_Up"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "Hung_Up_CAIXA"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "B",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "Hung_Up"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "Hung_Up_CRUZEIRO"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "C",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "Hung_Up"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "Hung_Up_DISAL"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "D",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "Hung_Up"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "Hung_Up_HUGHES"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "E",
+          "resultFormat": "time_series",
+          "slaProperty": {
+            "name": "SLA",
+            "property": "sla"
+          },
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "Hung_Up"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "Hung_Up_RH"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "F",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "Hung_Up"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "Hung_Up_SERASA_COB"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "G",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        },
+        {
+          "application": {
+            "filter": "Hung_Up"
+          },
+          "functions": [],
+          "group": {
+            "filter": "Aspect Unified IP  7.3"
+          },
+          "host": {
+            "filter": "ASPECT_INDICADORES"
+          },
+          "item": {
+            "filter": "Hung_Up_SERASA_WC"
+          },
+          "mode": 0,
+          "options": {
+            "showDisabledItems": false,
+            "skipEmptyValues": false
+          },
+          "refId": "H",
+          "resultFormat": "time_series",
+          "table": {
+            "skipEmptyValues": false
+          },
+          "triggers": {
+            "acknowledged": 2,
+            "count": true,
+            "minSeverity": 3
+          }
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [
+        {
+          "colorMode": "gray",
+          "fill": true,
+          "fillColor": "rgba(234, 112, 112, 0.12)",
+          "from": "11:00",
+          "line": false,
+          "lineColor": "rgba(237, 46, 24, 0.60)",
+          "op": "time",
+          "to": "00:00"
+        }
+      ],
+      "timeShift": null,
+      "title": "Hung Up",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "short",
+          "label": "",
+          "logBase": 1,
+          "max": "100",
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    }
+  ],
+  "refresh": "15m",
+  "schemaVersion": 18,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "tags": [],
+          "text": "Voz Positiva",
+          "value": "Voz Positiva"
+        },
+        "datasource": "SPJK-VM-ASP32B",
+        "definition": "SELECT [Disposition_Desc] FROM [config_epro].[dbo].[Disposition] where Disposition_Desc in ('Secretária Eletrônica', 'Network Announcement', 'Vacant Circuit' , 'No Answer', 'SIT Tone', 'Voz Positiva', 'Sem Detecção de Voz', 'Reorder' ,'No Dial Tone', 'No Ring Back', 'Call forward no answer Busy', 'Connect After Hold' ,'Dialer Dropped Cust After Hold' ,' Abort-Customer Hung Up On Hold', 'Empresa Detectada', 'Falha na Solicitação de Discagem', 'In-effective other' , 'Aparelho de Fax')",
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "Disposition",
+        "options": [
+          {
+            "selected": false,
+            "text": "Aparelho de Fax",
+            "value": "Aparelho de Fax"
+          },
+          {
+            "selected": false,
+            "text": "Connect After Hold",
+            "value": "Connect After Hold"
+          },
+          {
+            "selected": false,
+            "text": "Dialer Dropped Cust After Hold",
+            "value": "Dialer Dropped Cust After Hold"
+          },
+          {
+            "selected": false,
+            "text": "Empresa Detectada",
+            "value": "Empresa Detectada"
+          },
+          {
+            "selected": false,
+            "text": "Falha na Solicitação de Discagem",
+            "value": "Falha na Solicitação de Discagem"
+          },
+          {
+            "selected": false,
+            "text": "In-effective other",
+            "value": "In-effective other"
+          },
+          {
+            "selected": false,
+            "text": "Network Announcement",
+            "value": "Network Announcement"
+          },
+          {
+            "selected": false,
+            "text": "No Answer",
+            "value": "No Answer"
+          },
+          {
+            "selected": false,
+            "text": "No Dial Tone",
+            "value": "No Dial Tone"
+          },
+          {
+            "selected": false,
+            "text": "No Ring Back",
+            "value": "No Ring Back"
+          },
+          {
+            "selected": false,
+            "text": "Reorder",
+            "value": "Reorder"
+          },
+          {
+            "selected": false,
+            "text": "SIT Tone",
+            "value": "SIT Tone"
+          },
+          {
+            "selected": false,
+            "text": "Secretária Eletrônica",
+            "value": "Secretária Eletrônica"
+          },
+          {
+            "selected": false,
+            "text": "Sem Detecção de Voz",
+            "value": "Sem Detecção de Voz"
+          },
+          {
+            "selected": false,
+            "text": "Vacant Circuit",
+            "value": "Vacant Circuit"
+          },
+          {
+            "selected": true,
+            "text": "Voz Positiva",
+            "value": "Voz Positiva"
+          }
+        ],
+        "query": "SELECT [Disposition_Desc] FROM [config_epro].[dbo].[Disposition] where Disposition_Desc in ('Secretária Eletrônica', 'Network Announcement', 'Vacant Circuit' , 'No Answer', 'SIT Tone', 'Voz Positiva', 'Sem Detecção de Voz', 'Reorder' ,'No Dial Tone', 'No Ring Back', 'Call forward no answer Busy', 'Connect After Hold' ,'Dialer Dropped Cust After Hold' ,' Abort-Customer Hung Up On Hold', 'Empresa Detectada', 'Falha na Solicitação de Discagem', 'In-effective other' , 'Aparelho de Fax')",
+        "refresh": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now/d",
+    "to": "now/d"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "",
+  "title": "Inicial Aspect",
+  "uid": "pLV4sASZk",
+  "version": 72
+}
