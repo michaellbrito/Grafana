@@ -1,0 +1,10 @@
+select 'Metric Name' as metric, -- Use a literal or group by a column for the labels
+		count(*) as hits, -- Just counting occurrences
+		ts as [timestamp]
+from (
+	Select dbo.scale_interval(dateColumn, '$Interval') as ts -- scale datetime to $Interval (e.g. 10m)
+	from myTable
+	where dateColumn >= '$from' and dateColumn < '$to'
+) T
+group by ts
+order by ts asc
